@@ -1,27 +1,83 @@
+const mongoose = require('mongoose')
+const dotenv = require('dotenv')
 const express = require('express')
 const app = express()
-const dotenv = require('dotenv')
 const cors = require('cors');
-const connectDatabase = require('./config/database.js')
 
-// const meetingRoute = require('./routes/meeting')
-// const studentRoute = require('./routes/student')
-// const professorRoute = require('./routes/professor')
+mongoose.set('strictQuery', true)
+
+dotenv.config({ path: __dirname + '/config/.env' });
+
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => {
+    console.log('Connected to Database')
+    const db = mongoose.connection.db;
+    // db.collection('automotive').find({}).toArray(function (err, data) {
+    //   if (err) {
+    //     console.log(err)
+    //   } else {
+    //     console.log(data);
+    // return res.send(data);
+    //   }
+    // }
+    // );
+
+    //Male Users which have phone price greater than 10,000
+    app.get("/api_one", async (req, res) => {
+      try {
+        const result = db.collection('automotive')
+          .find({
+            $and: [{ gender: "Male" },
+            { $expr: { $gt: [{ $toInt: "$phone_price" }, 10000] } }]
+          })
+          .toArray(function (err, data) {
+            if (err) {
+              console.log(err)
+            } else {
+              // console.log(data);
+              return res.send(data);
+            }
+          });
+      } catch (err) {
+        res.status(500).json(err)
+      }
+    })
+
+    //Users whose last name starts with “M” and has a quote character length greater than 15 
+    //and email includes his/her last name
+    app.get("/api_two", async (req, res) => {
+      try {
+        const result = db.collection('automotive')
+          // .find({ $and: [{ gender: "Male" }, { $expr: { $gt: [{ $toInt: "$phone_price" }, 10000] } }] })
+          .find({
+            $and: [{ first_name: /^M/ },
+            { $where: function () { return (this.first_name.length > 15) } },
+            { "$expr": { $indexOfCP: ["email", "$last_name"] } }]
+          })
+          .toArray(function (err, data) {
+            if (err) {
+              console.log(err)
+            } else {
+              // console.log(data);
+              return res.send(data);
+            }
+          });
+      } catch (err) {
+        res.status(500).json(err)
+      }
+    })
+
+  })
+  .catch((err) => { console.log(err) })
 
 app.use(
   cors(),
   express.urlencoded({ extended: true }),
   express.json()
 )
-
-dotenv.config({ path: __dirname + '/.env' });
-
-connectDatabase()
-
-//add routes
-// app.use("/api/meetings", meetingRoute)
-// app.use("/api/students", studentRoute)
-// app.use("/api/professors", professorRoute)
 
 const PORT = process.env.PORT || 5050
 
