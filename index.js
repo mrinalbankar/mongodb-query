@@ -51,7 +51,6 @@ mongoose.connect(process.env.MONGODB_URI, {
     app.get("/api_two", async (req, res) => {
       try {
         const result = db.collection('automotive')
-          // .find({ $and: [{ gender: "Male" }, { $expr: { $gt: [{ $toInt: "$phone_price" }, 10000] } }] })
           .find({
             $and: [{ first_name: /^M/ },
             { $where: function () { return (this.first_name.length > 15) } },
@@ -69,6 +68,30 @@ mongoose.connect(process.env.MONGODB_URI, {
         res.status(500).json(err)
       }
     })
+
+    //Users which have a car of brand “BMW”, “Mercedes” or “Audi” and 
+    //whose email does not include any digit.
+    app.get("/api_three", async (req, res) => {
+      try {
+        const result = db.collection('automotive')
+        .find({
+          $and: [{ car: { $in: ["BMW", "Mercedes", "Audi"] } }]
+          // $and: [{ car: { $in: ["BMW", "Mercedes", "Audi"] } },
+          // { $isNumber: "$email" }]
+        })
+          .toArray(function (err, data) {
+            if (err) {
+              console.log(err)
+            } else {
+              // console.log(data);
+              return res.send(data);
+            }
+          });
+      } catch (err) {
+        res.status(500).json(err)
+      }
+    })
+
 
   })
   .catch((err) => { console.log(err) })
